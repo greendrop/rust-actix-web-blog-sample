@@ -1,22 +1,34 @@
 use std::env;
 
-use actix_web::{middleware, App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use env_logger::Env;
+use sea_orm::{Database, DatabaseConnection};
 
 mod handlers;
+
+#[derive(Debug, Clone)]
+struct AppState {
+    database_connection: DatabaseConnection,
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("debug"));
 
     dotenv().ok();
-    // let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    HttpServer::new(|| {
+    let database_connection = Database::connect(&database_url).await.unwrap();
+    let app_state = AppState {
+        database_connection,
+    };
+
+    HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
             .wrap(middleware::Logger::new("%a %{User-Agent}i"))
+            .app_data(web::Data::new(app_state.clone()))
             .service(handlers::hello)
     })
     .bind(("127.0.0.1", 8080))?
