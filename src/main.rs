@@ -27,7 +27,6 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
-            .wrap(middleware::Logger::new("%a %{User-Agent}i"))
             .app_data(web::Data::new(app_state.clone()))
             .service(handlers::hello)
     })
