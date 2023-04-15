@@ -1,5 +1,7 @@
-use actix_web::{get, middleware, App, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware, App, HttpServer};
 use env_logger::Env;
+
+mod handlers;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -9,14 +11,9 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(middleware::Logger::default())
             .wrap(middleware::Logger::new("%a %{User-Agent}i"))
-            .service(hello)
+            .service(handlers::hello)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
-}
-
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
 }
