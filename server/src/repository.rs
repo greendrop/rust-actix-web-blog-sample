@@ -11,15 +11,13 @@ impl ArticlesRepository {
         }
     }
 
-    /*
-    pub async fn find_all(&self) -> Result<Vec<Articles>, Error> {
-        let articles = Articles::Entity::find()
+    pub async fn find_all(&self) -> Result<Vec<entity::articles::Model>, DbErr> {
+        let articles = entity::articles::Entity::find()
             .all(&self.database_connection)
             .await?;
 
         Ok(articles)
     }
-    */
 
     pub async fn find_by_id(&self, id: i32) -> Result<Option<entity::articles::Model>, DbErr> {
         let article = entity::articles::Entity::find_by_id(id)
