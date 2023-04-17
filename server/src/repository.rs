@@ -1,4 +1,4 @@
-use sea_orm::{DatabaseConnection, DbErr, EntityTrait};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, Set};
 
 pub struct ArticlesRepository {
     pub database_connection: DatabaseConnection,
@@ -27,15 +27,22 @@ impl ArticlesRepository {
         Ok(article)
     }
 
-    /*
-    pub async fn create(&self, article: &Articles) -> Result<Articles, Error> {
-        let article = article
-            .save(&self.database_connection)
-            .await?;
+    pub async fn create(
+        &self,
+        form_data: entity::articles::Model,
+    ) -> Result<entity::articles::ActiveModel, DbErr> {
+        let article = entity::articles::ActiveModel {
+            title: Set(form_data.title.to_owned()),
+            body: Set(form_data.body.to_owned()),
+            ..Default::default()
+        }
+        .save(&self.database_connection)
+        .await?;
 
         Ok(article)
     }
 
+    /*
     pub async fn update(&self, article: &Articles) -> Result<Articles, Error> {
         let article = article
             .save(&self.database_connection)

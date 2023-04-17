@@ -1,5 +1,5 @@
-use actix_web::{get, web, HttpResponse, Responder};
-use serde::Serialize;
+use actix_web::{get, post, web, HttpResponse, Responder};
+use serde::{Deserialize, Serialize};
 
 use crate::repository;
 
@@ -40,6 +40,12 @@ struct ArticleShowResponse {
     body: String,
 }
 
+#[derive(Deserialize)]
+struct ArticleForm {
+    title: String,
+    body: String,
+}
+
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
@@ -62,6 +68,38 @@ async fn articles_index(data: web::Data<super::AppState>) -> impl Responder {
                 })
                 .collect::<Vec<ArticleIndexResponse>>();
             return HttpResponse::Ok().json(response);
+        }
+        Err(_err) => {
+            return HttpResponse::InternalServerError()
+                .json(HttpErrorResponse::internal_server_error())
+        }
+    }
+}
+
+#[post("/articles")]
+async fn articles_create(
+    data: web::Data<super::AppState>,
+    article_form: web::Json<ArticleForm>,
+) -> impl Responder {
+    let article_form = article_form.into_inner();
+    let dtabase_connection = &data.database_connection;
+
+    let articles_repository = repository::ArticlesRepository::new(dtabase_connection.clone());
+
+    let form = entity::articles::Model {
+        id: 0,
+        title: article_form.title,
+        body: article_form.body,
+    };
+
+    match articles_repository.create(form).await {
+        Ok(article) => {
+            let response = ArticleShowResponse {
+                id: article.id.unwrap(),
+                title: article.title.unwrap(),
+                body: article.body.unwrap(),
+            };
+            return HttpResponse::Created().json(response);
         }
         Err(_err) => {
             return HttpResponse::InternalServerError()

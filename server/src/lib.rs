@@ -31,6 +31,7 @@ pub async fn start() -> std::io::Result<()> {
             .app_data(web::Data::new(app_state.clone()))
             .service(handler::hello)
             .service(handler::articles_index)
+            .service(handler::articles_create)
             .service(handler::articles_show)
     })
     .bind(("127.0.0.1", 8080))?
