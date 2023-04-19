@@ -1,4 +1,4 @@
-use actix_web::{get, patch, post, web, HttpResponse, Responder};
+use actix_web::{delete, get, patch, post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
 use crate::repository;
@@ -157,15 +157,38 @@ async fn articles_update(
                 };
 
                 match articles_repository.update(form).await {
-                    Ok(_) => {
-                        return HttpResponse::NoContent().body("");
-                    }
+                    Ok(_) => return HttpResponse::NoContent().body(""),
                     Err(_err) => {
                         return HttpResponse::InternalServerError()
                             .json(HttpErrorResponse::internal_server_error())
                     }
                 }
             }
+            None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
+        },
+        Err(_err) => {
+            return HttpResponse::InternalServerError()
+                .json(HttpErrorResponse::internal_server_error())
+        }
+    }
+}
+
+#[delete("/articles/{id}")]
+async fn articles_delete(data: web::Data<super::AppState>, id: web::Path<i32>) -> impl Responder {
+    let id = id.into_inner();
+    let dtabase_connection = &data.database_connection;
+
+    let articles_repository = repository::ArticlesRepository::new(dtabase_connection.clone());
+
+    match articles_repository.find_by_id(id).await {
+        Ok(ok) => match ok {
+            Some(_) => match articles_repository.delete(id).await {
+                Ok(_) => return HttpResponse::NoContent().body(""),
+                Err(_err) => {
+                    return HttpResponse::InternalServerError()
+                        .json(HttpErrorResponse::internal_server_error())
+                }
+            },
             None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
         },
         Err(_err) => {

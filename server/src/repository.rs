@@ -1,4 +1,4 @@
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, ModelTrait, Set};
 
 pub struct ArticlesRepository {
     pub database_connection: DatabaseConnection,
@@ -60,21 +60,15 @@ impl ArticlesRepository {
 
         Ok(article)
     }
-    /*
-    pub async fn update(&self, article: &Articles) -> Result<Articles, Error> {
-        let article = article
-            .save(&self.database_connection)
+
+    pub async fn delete(&self, id: i32) -> Result<sea_orm::DeleteResult, DbErr> {
+        let article = entity::articles::Entity::find_by_id(id)
+            .one(&self.database_connection)
             .await?;
 
-        Ok(article)
-    }
+        let article: entity::articles::Model = article.unwrap();
+        let res: sea_orm::DeleteResult = article.delete(&self.database_connection).await?;
 
-    pub async fn delete(&self, article: &Articles) -> Result<Articles, Error> {
-        let article = article
-            .delete(&self.database_connection)
-            .await?;
-
-        Ok(article)
+        Ok(res)
     }
-    */
 }
