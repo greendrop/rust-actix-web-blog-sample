@@ -36,6 +36,7 @@ pub async fn start() -> std::io::Result<()> {
             .service(handler::articles_update)
             .service(handler::articles_delete)
             .service(handler::comments_index)
+            .service(handler::comments_create)
             .service(handler::comments_show)
     })
     .bind(("127.0.0.1", 8080))?

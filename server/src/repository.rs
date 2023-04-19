@@ -111,4 +111,19 @@ impl CommentsRepository {
 
         Ok(comment)
     }
+
+    pub async fn create(
+        &self,
+        form_data: entity::comments::Model,
+    ) -> Result<entity::comments::ActiveModel, DbErr> {
+        let comment = entity::comments::ActiveModel {
+            article_id: Set(form_data.article_id.to_owned()),
+            body: Set(form_data.body.to_owned()),
+            ..Default::default()
+        }
+        .save(&self.database_connection)
+        .await?;
+
+        Ok(comment)
+    }
 }

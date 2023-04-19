@@ -58,6 +58,11 @@ struct CommentShowResponse {
     body: String,
 }
 
+#[derive(Deserialize)]
+struct CommentForm {
+    body: String,
+}
+
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
@@ -213,9 +218,9 @@ async fn articles_delete(data: web::Data<super::AppState>, id: web::Path<i32>) -
 #[get("/articles/{article_id}/comments")]
 async fn comments_index(
     data: web::Data<super::AppState>,
-    article_id: web::Path<i32>,
+    path_info: web::Path<i32>,
 ) -> impl Responder {
-    let article_id = article_id.into_inner();
+    let article_id = path_info.into_inner();
     let dtabase_connection = &data.database_connection;
 
     let articles_repository = repository::ArticlesRepository::new(dtabase_connection.clone());
@@ -236,6 +241,53 @@ async fn comments_index(
                             })
                             .collect::<Vec<CommentIndexResponse>>();
                         return HttpResponse::Ok().json(response);
+                    }
+                    Err(_err) => {
+                        return HttpResponse::InternalServerError()
+                            .json(HttpErrorResponse::internal_server_error())
+                    }
+                }
+            }
+            None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
+        },
+        Err(_err) => {
+            return HttpResponse::InternalServerError()
+                .json(HttpErrorResponse::internal_server_error())
+        }
+    }
+}
+
+#[post("/articles/{article_id}/comments")]
+async fn comments_create(
+    data: web::Data<super::AppState>,
+    path_info: web::Path<i32>,
+    comment_form: web::Json<CommentForm>,
+) -> impl Responder {
+    let article_id = path_info.into_inner();
+    let comment_form = comment_form.into_inner();
+    let dtabase_connection = &data.database_connection;
+
+    let articles_repository = repository::ArticlesRepository::new(dtabase_connection.clone());
+
+    match articles_repository.find_by_id(article_id).await {
+        Ok(ok) => match ok {
+            Some(_) => {
+                let comments_repository =
+                    repository::CommentsRepository::new(dtabase_connection.clone());
+
+                let form = entity::comments::Model {
+                    id: 0,
+                    article_id,
+                    body: comment_form.body,
+                };
+
+                match comments_repository.create(form).await {
+                    Ok(comment) => {
+                        let response = CommentShowResponse {
+                            id: comment.id.unwrap(),
+                            body: comment.body.unwrap(),
+                        };
+                        return HttpResponse::Created().json(response);
                     }
                     Err(_err) => {
                         return HttpResponse::InternalServerError()
