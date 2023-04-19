@@ -352,3 +352,47 @@ async fn comments_show(
         }
     }
 }
+
+#[patch("/articles/{article_id}/comments/{id}")]
+async fn comments_update(
+    data: web::Data<super::AppState>,
+    path_info: web::Path<(i32, i32)>,
+    comment_form: web::Json<CommentForm>,
+) -> impl Responder {
+    let path_info = path_info.into_inner();
+    let article_id = path_info.0;
+    let id = path_info.1;
+    let dtabase_connection = &data.database_connection;
+
+    let comments_repository = repository::CommentsRepository::new(dtabase_connection.clone());
+
+    match comments_repository
+        .find_by_article_id_and_id(article_id, id)
+        .await
+    {
+        Ok(ok) => match ok {
+            Some(_) => {
+                let comment_form = comment_form.into_inner();
+
+                let form = entity::comments::Model {
+                    id,
+                    article_id,
+                    body: comment_form.body,
+                };
+
+                match comments_repository.update(form).await {
+                    Ok(_) => return HttpResponse::NoContent().body(""),
+                    Err(_err) => {
+                        return HttpResponse::InternalServerError()
+                            .json(HttpErrorResponse::internal_server_error())
+                    }
+                }
+            }
+            None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
+        },
+        Err(_err) => {
+            return HttpResponse::InternalServerError()
+                .json(HttpErrorResponse::internal_server_error())
+        }
+    }
+}

@@ -126,4 +126,23 @@ impl CommentsRepository {
 
         Ok(comment)
     }
+
+    pub async fn update(
+        &self,
+        form_data: entity::comments::Model,
+    ) -> Result<entity::comments::ActiveModel, DbErr> {
+        let comment = entity::comments::Entity::find_by_id(form_data.id)
+            .filter(entity::comments::Column::ArticleId.eq(form_data.article_id))
+            .one(&self.database_connection)
+            .await?;
+
+        let mut comment: entity::comments::ActiveModel = comment.unwrap().into();
+
+        comment.body = Set(form_data.body.to_owned());
+
+        let comment: entity::comments::ActiveModel =
+            comment.update(&self.database_connection).await?.into();
+
+        Ok(comment)
+    }
 }

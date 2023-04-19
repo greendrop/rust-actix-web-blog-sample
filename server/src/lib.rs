@@ -38,6 +38,7 @@ pub async fn start() -> std::io::Result<()> {
             .service(handler::comments_index)
             .service(handler::comments_create)
             .service(handler::comments_show)
+            .service(handler::comments_update)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
