@@ -42,6 +42,24 @@ impl ArticlesRepository {
         Ok(article)
     }
 
+    pub async fn update(
+        &self,
+        form_data: entity::articles::Model,
+    ) -> Result<entity::articles::ActiveModel, DbErr> {
+        let article = entity::articles::Entity::find_by_id(form_data.id)
+            .one(&self.database_connection)
+            .await?;
+
+        let mut article: entity::articles::ActiveModel = article.unwrap().into();
+
+        article.title = Set(form_data.title.to_owned());
+        article.body = Set(form_data.body.to_owned());
+
+        let article: entity::articles::ActiveModel =
+            article.update(&self.database_connection).await?.into();
+
+        Ok(article)
+    }
     /*
     pub async fn update(&self, article: &Articles) -> Result<Articles, Error> {
         let article = article
