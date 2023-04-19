@@ -98,4 +98,17 @@ impl CommentsRepository {
 
         Ok(comments)
     }
+
+    pub async fn find_by_article_id_and_id(
+        &self,
+        article_id: i32,
+        id: i32,
+    ) -> Result<Option<entity::comments::Model>, DbErr> {
+        let comment = entity::comments::Entity::find_by_id(id)
+            .filter(entity::comments::Column::ArticleId.eq(article_id))
+            .one(&self.database_connection)
+            .await?;
+
+        Ok(comment)
+    }
 }

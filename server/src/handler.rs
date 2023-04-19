@@ -52,6 +52,12 @@ struct CommentIndexResponse {
     body: String,
 }
 
+#[derive(Serialize)]
+struct CommentShowResponse {
+    id: i32,
+    body: String,
+}
+
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
@@ -231,6 +237,55 @@ async fn comments_index(
                             .collect::<Vec<CommentIndexResponse>>();
                         return HttpResponse::Ok().json(response);
                     }
+                    Err(_err) => {
+                        return HttpResponse::InternalServerError()
+                            .json(HttpErrorResponse::internal_server_error())
+                    }
+                }
+            }
+            None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
+        },
+        Err(_err) => {
+            return HttpResponse::InternalServerError()
+                .json(HttpErrorResponse::internal_server_error())
+        }
+    }
+}
+
+#[get("/articles/{article_id}/comments/{id}")]
+async fn comments_show(
+    data: web::Data<super::AppState>,
+    path_info: web::Path<(i32, i32)>,
+) -> impl Responder {
+    let path_info = path_info.into_inner();
+    let article_id = path_info.0;
+    let id = path_info.1;
+    let dtabase_connection = &data.database_connection;
+
+    let articles_repository = repository::ArticlesRepository::new(dtabase_connection.clone());
+
+    match articles_repository.find_by_id(article_id).await {
+        Ok(ok) => match ok {
+            Some(_) => {
+                let comments_repository =
+                    repository::CommentsRepository::new(dtabase_connection.clone());
+
+                match comments_repository
+                    .find_by_article_id_and_id(article_id, id)
+                    .await
+                {
+                    Ok(comment) => match comment {
+                        Some(comment) => {
+                            let response = CommentShowResponse {
+                                id: comment.id,
+                                body: comment.body,
+                            };
+                            return HttpResponse::Ok().json(response);
+                        }
+                        None => {
+                            return HttpResponse::NotFound().json(HttpErrorResponse::not_found())
+                        }
+                    },
                     Err(_err) => {
                         return HttpResponse::InternalServerError()
                             .json(HttpErrorResponse::internal_server_error())
