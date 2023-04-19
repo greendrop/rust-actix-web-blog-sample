@@ -46,6 +46,12 @@ struct ArticleForm {
     body: String,
 }
 
+#[derive(Serialize)]
+struct CommentIndexResponse {
+    id: i32,
+    body: String,
+}
+
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
@@ -189,6 +195,48 @@ async fn articles_delete(data: web::Data<super::AppState>, id: web::Path<i32>) -
                         .json(HttpErrorResponse::internal_server_error())
                 }
             },
+            None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
+        },
+        Err(_err) => {
+            return HttpResponse::InternalServerError()
+                .json(HttpErrorResponse::internal_server_error())
+        }
+    }
+}
+
+#[get("/articles/{article_id}/comments")]
+async fn comments_index(
+    data: web::Data<super::AppState>,
+    article_id: web::Path<i32>,
+) -> impl Responder {
+    let article_id = article_id.into_inner();
+    let dtabase_connection = &data.database_connection;
+
+    let articles_repository = repository::ArticlesRepository::new(dtabase_connection.clone());
+
+    match articles_repository.find_by_id(article_id).await {
+        Ok(ok) => match ok {
+            Some(_) => {
+                let comments_repository =
+                    repository::CommentsRepository::new(dtabase_connection.clone());
+
+                match comments_repository.find_all_by_article_id(article_id).await {
+                    Ok(comments) => {
+                        let response = comments
+                            .iter()
+                            .map(|comment| CommentIndexResponse {
+                                id: comment.id,
+                                body: comment.body.clone(),
+                            })
+                            .collect::<Vec<CommentIndexResponse>>();
+                        return HttpResponse::Ok().json(response);
+                    }
+                    Err(_err) => {
+                        return HttpResponse::InternalServerError()
+                            .json(HttpErrorResponse::internal_server_error())
+                    }
+                }
+            }
             None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
         },
         Err(_err) => {

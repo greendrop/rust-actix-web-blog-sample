@@ -1,4 +1,7 @@
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, ModelTrait, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, ModelTrait, QueryFilter,
+    Set,
+};
 
 pub struct ArticlesRepository {
     pub database_connection: DatabaseConnection,
@@ -70,5 +73,29 @@ impl ArticlesRepository {
         let res: sea_orm::DeleteResult = article.delete(&self.database_connection).await?;
 
         Ok(res)
+    }
+}
+
+pub struct CommentsRepository {
+    pub database_connection: DatabaseConnection,
+}
+
+impl CommentsRepository {
+    pub fn new(database_connection: DatabaseConnection) -> Self {
+        Self {
+            database_connection,
+        }
+    }
+
+    pub async fn find_all_by_article_id(
+        &self,
+        article_id: i32,
+    ) -> Result<Vec<entity::comments::Model>, DbErr> {
+        let comments = entity::comments::Entity::find()
+            .filter(entity::comments::Column::ArticleId.eq(article_id))
+            .all(&self.database_connection)
+            .await?;
+
+        Ok(comments)
     }
 }
