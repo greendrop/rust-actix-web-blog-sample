@@ -145,4 +145,16 @@ impl CommentsRepository {
 
         Ok(comment)
     }
+
+    pub async fn delete(&self, article_id: i32, id: i32) -> Result<sea_orm::DeleteResult, DbErr> {
+        let comment = entity::comments::Entity::find_by_id(id)
+            .filter(entity::comments::Column::ArticleId.eq(article_id))
+            .one(&self.database_connection)
+            .await?;
+
+        let comment: entity::comments::Model = comment.unwrap();
+        let res: sea_orm::DeleteResult = comment.delete(&self.database_connection).await?;
+
+        Ok(res)
+    }
 }

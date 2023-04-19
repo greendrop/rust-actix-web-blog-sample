@@ -396,3 +396,36 @@ async fn comments_update(
         }
     }
 }
+
+#[delete("/articles/{article_id}/comments/{id}")]
+async fn comments_delete(
+    data: web::Data<super::AppState>,
+    path_info: web::Path<(i32, i32)>,
+) -> impl Responder {
+    let path_info = path_info.into_inner();
+    let article_id = path_info.0;
+    let id = path_info.1;
+    let dtabase_connection = &data.database_connection;
+
+    let comments_repository = repository::CommentsRepository::new(dtabase_connection.clone());
+
+    match comments_repository
+        .find_by_article_id_and_id(article_id, id)
+        .await
+    {
+        Ok(ok) => match ok {
+            Some(_) => match comments_repository.delete(article_id, id).await {
+                Ok(_) => return HttpResponse::NoContent().body(""),
+                Err(_err) => {
+                    return HttpResponse::InternalServerError()
+                        .json(HttpErrorResponse::internal_server_error());
+                }
+            },
+            None => return HttpResponse::NotFound().json(HttpErrorResponse::not_found()),
+        },
+        Err(_err) => {
+            return HttpResponse::InternalServerError()
+                .json(HttpErrorResponse::internal_server_error());
+        }
+    }
+}
