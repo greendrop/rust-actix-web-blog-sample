@@ -1,11 +1,12 @@
 use std::env;
 
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use env_logger::Env;
 use sea_orm::{Database, DatabaseConnection};
 
 mod handler;
+mod middleware;
 mod repository;
 
 #[derive(Debug, Clone)]
@@ -19,6 +20,17 @@ pub async fn start() -> std::io::Result<()> {
 
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let sentry_url = env::var("SENTRY_URL").expect("SENTRY_URL must be set");
+
+    let _guard = sentry::init((
+        sentry_url,
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            session_mode: sentry::SessionMode::Request,
+            ..Default::default()
+        },
+    ));
+    std::env::set_var("RUST_BACKTRACE", "1");
 
     let database_connection = Database::connect(&database_url).await.unwrap();
     let app_state = AppState {
@@ -27,7 +39,12 @@ pub async fn start() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(middleware::Logger::default())
+            .wrap(actix_web::middleware::Logger::default())
+            .wrap(middleware::Sentry)
+            .wrap(actix_web::middleware::ErrorHandlers::new().handler(
+                actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+                handler::notify_error_handler,
+            ))
             .app_data(web::Data::new(app_state.clone()))
             .service(handler::hello)
             .service(handler::articles_index)
