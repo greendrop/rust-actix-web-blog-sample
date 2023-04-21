@@ -5,9 +5,13 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4.3.1"
+anyhow = { version = "1", features = ["backtrace"] }
+derive_more = "0.99.17"
 dotenv = "0.15.0"
 env_logger = "0.10.0"
+futures-util = "0.3.28"
 log = "0.4.17"
 sea-orm = { version = "0.11.2", features = [ "sqlx-mysql", "runtime-actix-native-tls", "macros" ] }
 entity = { path = "../entity" }
 serde = { version = "1.0", features = ["derive"] }
+sentry = "0.30.0"
